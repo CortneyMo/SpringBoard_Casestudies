@@ -1,0 +1,189 @@
+# For this case study I was provided the AEMR_Outage_Table.
+# As the analyst withing the theoretical data and reporting team, I was asked to address two immediate areas of concer.
+    A) Energy and Stability and Market Outages
+    B) Energy Losses and Market Reliability.
+
+# The following I answer questions provided in the assignment using SQLite and build visualizations and final report presentation via Tableau: 
+        Tableau Link: https://public.tableau.com/views/AEMRSpringboardCaseStudy/AEMRCaseStudy?:language=en-US&publish=yes&:display_count=n&:origin=viz_share_link.
+
+#1. Write a SQL Statement to `COUNT` the number of valid (i.e. `Status = Approved`) Outage Events sorted by their respective `Outage_Reason` (i.e. `Forced`, `Consequential`, `Scheduled`, `Opportunistic`) over the 2016 & 2017 Periods.
+
+SELECT
+    COUNT(DISTINCT EventID) AS Total_Number_Outages,
+    Outage_Reason, Year
+FROM AEMR.AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Outage_Reason, Year
+ORDER BY Year;
+
+#2. Write a SQL Statement showing the `Total` of all Outage Types (Forced, Consequential, Scheduled, Opportunistic) where the `Status = Approved`, that occurred for both 2016 and 2017,
+ grouped by `Year` and `Month`.  per month (i.e. 1 – 12).  Order by `Year`, `Month`, `Total_Number_Outages` in Descending Order*/
+ 
+SELECT Year, Month,
+       COUNT(DISTINCT EventID) AS Total_Number_Outages    
+FROM AEMR.AEMR_Outage_Table
+Where Status = 'Approved'
+GROUP BY Year, Month
+ORDER BY Year, Month, Total_NUmber_Outages DESC;
+
+
+#3. Write a SQL statement that calculates 1) The `Total_Number_Outage_Events` and 2) The <b> `Average Duration`</b> in <u>DAYS</u> for each `Participant Code` and 
+`Outage Type` over the 2016 and 2017 Period where the `Status = Approved`. Order by `Total_Number_Outage_Events` in Descending Order, `Reason` and `Year`
+
+SELECT Participant_Code, Outage_Reason, Year,
+        COUNT(DISTINCT EVENTID) AS Total_No_Outage_Events,
+        ROUND(AVG((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time)))),2) AS avg_outage_duration_in_days
+FROM AEMR.AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Participant_Code, Year
+ORDER BY Year, Total_No_Outage_Events DESC, Outage_Reason;
+
+
+#4. Using the above criteria for context, write a SQL Statement that <u> classifies each participant code as either `High Risk`, `Medium Risk` or `Low Risk` 
+in a column called `Risk_Classification`</u> that is based off their Average Outage Duration Time. Please note that this is for all valid (i.e. `Where status = approved`) outage types 
+(Forced, Consequential, Scheduled, Opportunistic) for <u>all</u> participant codes from 2016 to 2017. Order the results using `Average Duration Time In Days` in descending order.
+
+WITH avg_duration AS (SELECT Participant_Code, Outage_Reason, Year,
+        COUNT(DISTINCT EVENTID) AS Total_No_Outage_Events,
+        ROUND(AVG((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time)))),2) AS avg_outage_duration_in_days
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Participant_Code, Year
+ORDER BY Year, Total_No_Outage_Events DESC, Outage_Reason)
+
+SELECT *,
+    CASE WHEN avg_outage_duration_in_days > 2 THEN 'High Risk'
+      WHEN  avg_outage_duration_in_days > 1 THEN 'Medium Risk'
+      ELSE 'Low Risk' END AS Risk_Classification
+FROM avg_duration
+GROUP BY Participant_Code, Year
+ORDER BY avg_outage_duration_in_days DESC;
+
+
+ #5. High Risk - On average, the participant is unavailable for > 24 Hours (1 Day) OR the Total Number of Outage Events > 20 </li> <li> Medium Risk - On average, the participant is unavailable between 12 and 24 Hours OR the Total Number of Outage Events is Between 10 and 20 </li>
+<li> Low Risk - On average, the participant is unavailable for less than 12 Hours OR the Total Number of Outage Events < 10 </li> <li> If Outage Type is not forced, then N/A </b>*?
+
+
+WITH avg_duration AS (SELECT Participant_Code, Outage_Reason, Year,
+        COUNT(DISTINCT EVENTID) AS Total_No_Outage_Events,
+        ROUND(AVG((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time)))),2) AS avg_outage_duration_in_days
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Participant_Code, Year
+ORDER BY Year, Total_No_Outage_Events DESC, Outage_Reason)
+
+SELECT *,
+    CASE WHEN avg_outage_duration_in_days > 2 OR Total_No_Outage_Events > 200 THEN 'High Risk'
+      WHEN  avg_outage_duration_in_days > 1 OR Total_No_Outage_Events > 100 THEN 'Medium Risk'
+      ELSE 'Low Risk' END AS Risk_Classification
+FROM avg_duration
+GROUP BY Participant_Code, Year
+ORDER BY avg_outage_duration_in_days DESC;
+
+
+
+#6. Just as you did in Question Four, Using the above criteria for context, write a SQL Statement that <u> classifies each participant code as either `High Risk`, `Medium Risk` or `Low Risk` in a column called `Risk_Classification`</u> 
+using the new classification criteria. Order the results using `Average Duration Time In Days` in descending order. 
+<b>⚠️Hint: Think about the CASE Statement and how you might use this to help you with your classification! </b>
+
+
+Select Participant_Code, Year,Outage_Reason,
+        COUNT(DISTINCT EventID) AS total_no_outage_events,
+        ROUND((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))),2) AS total_outage_duration_in_days
+FROM AEMR.AEMR_Outage_Table
+GROUP BY Participant_Code
+ORDER BY Year, total_no_outage_events Desc;
+
+ WITH avg_duration AS (SELECT Participant_Code, Outage_Reason, Year,
+        COUNT(DISTINCT EVENTID) AS Total_No_Outage_Events,
+        ROUND(AVG((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time)))),2) AS avg_outage_duration_in_days
+FROM AEMR_Outage_Table
+WHERE Status = 'Approved'
+GROUP BY Participant_Code, Year
+ORDER BY Year, Total_No_Outage_Events DESC, Outage_Reason)
+
+SELECT *,
+    CASE WHEN Participant_Code IN('AURICOM', 'GW','MELK','AUXC', 'PJRH', 'TRMOS','PUG','KORL') THEN 'High Risk'
+      WHEN  Participant_Code IN('PMC','COLLGAR','ENRG','TSLA_MGT')  THEN 'Medium Risk'
+      ELSE 'Low Risk' END AS Risk_Classification
+FROM avg_duration
+GROUP BY Participant_Code, Year
+ORDER BY avg_outage_duration_in_days DESC;   
+
+
+#7. Write a SQL Statement to calculate the proportion of Forced Outages that have occurred over the 2016 - 2017 Period.
+Do we observe any particular increases regarding any Outage Types over this period?
+
+SELECT Year, COUNT(CASE WHEN Participant_Code = 'Forced' THEN 1 ELSE 0 END) AS Total_no_Forced_Outages,
+        COUNT(*) AS Total_no_Outages,
+        (COUNT(CASE WHEN Participant_Code = 'Forced' THEN 1 ELSE 0 END) /COUNT(*))*100 AS pct_of_Forced_Outages
+FROM AEMR_Outage_Table 
+GROUP BY Year;
+
+
+#8. Write a SQL Statement to calculate the `Total Number of Outages`, `Total Duration In Days`and `Total Energy Lost` of all valid `Outages` for each `participant code` and `facility_code`, sorted by `Total Energy Lost` in descending order and Ordered by the YEAR Category*/
+
+SELECT 
+     COUNT(*) AS Total_no_Outages,
+     ROUND((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time))),2) AS Total_Duration_in_days,
+     ROUND(SUM(Energy_Lost_MW),2) AS Total_Energy_Lost,
+     Outage_Reason, Participant_Code, Facility_Code, Year
+FROM AEMR.AEMR_Outage_Table
+GROUP BY Participant_Code, Facility_Code
+ORDER BY Year, Total_Energy_Lost DESC;
+
+
+#9. <b> Write a SQL Statement to calculate the `Average Duration In Days`and 
+`Average Energy Lost` of all valid `FORCED OUTAGES` 
+for each `participant code` and `facility_code` sorted by `Average Energy Lost` 
+in descending order and Ordered by the YEAR Category. */
+
+SELECT 
+     ROUND(AVG((ABS(JULIANDAY(End_Time) - JULIANDAY(Start_Time)))),2) AS avg_Duration_in_days,
+     ROUND(AVG(Energy_Lost_MW),2) AS avg_Energy_Lost,
+     Outage_Reason, Participant_Code, Facility_Code, year
+FROM AEMR.AEMR_Outage_Table
+GROUP BY Participant_Code, Facility_Code,Year
+HAVING Outage_Reason = 'Forced'
+ORDER BY Year,avg_Energy_Lost DESC;
+
+
+#10. Write a SQL Statement to calculate the `Average Energy Lost` and `Total Energy Lost` for each `Facility Code` and `Participant Code` across both the 2016 and 2017 periods 
+when the `Outage_Reason` is set to Forced. Upon completion of this, calculate the <u> percentage </u> of energy lost due to forced outages for each `Facility_Code`. Please ORDER the query by `Total Energy Lost` from 2016 to 2017.
+ 
+From your analysis, which participants have contributed the most to the Energy Lost due to Forced Outages?
+
+WITH TotalEnergyLost AS(
+    SELECT Facility_Code, Year,
+        ROUND(SUM(Energy_Lost_MW),2) AS total_Energy_Lost
+    FROM AEMR_Outage_Table
+    GROUP BY Facility_Code, Year)
+
+SELECT 
+     ROUND(AVG(Energy_Lost_MW),2) AS avg_Energy_Lost,
+     ROUND(SUM(Energy_Lost_MW),2) AS total_Energy_Lost,
+     ROUND((SUM(Energy_Lost_MW) / t.total_Energy_Lost) * 100, 2) AS pct_Energy_Loss,     
+     Outage_Reason, Participant_Code, a.Facility_Code, a.Year
+FROM AEMR_Outage_Table AS a
+JOIN TotalEnergyLost AS t USING(Facility_Code)
+GROUP BY Participant_Code, a.Facility_Code, a.Year
+HAVING Outage_Reason = 'Forced'
+ORDER BY a.Year,total_Energy_Lost DESC;
+
+# 11. Having identified the top 3 participants by Total Energy Loss being `GW`, `MELK` and `Auricon`; 
+Write a SQL Statement calculating the `Total_Energy_Lost` each of these three `Participant_Codes` and the `Facility_Code`. Additionally, identify the `Description_Of_Outage` associated with the highest 
+`Total_Energy_Lost` for each of the `Participant_Codes` and `Facility_Code` for each of the three participants. Lastly, calculate the percentage of Energy Loss, attributed to these reasons!*/
+
+WITH cte AS (
+SELECT Participant_Code, Facility_Code, Description_Of_Outage,
+        ROUND(SUM(Energy_Lost_MW),2) AS total_Energy_Lost      
+FROM AEMR_Outage_Table
+GROUP BY Participant_Code, Facility_Code, Description_Of_Outage)
+ 
+SELECT a.Participant_Code, a.Facility_Code, a.Description_Of_Outage,
+    ROUND(SUM(Energy_Lost_MW),2) AS total_Energy_Lost,
+    ROUND((SUM(Energy_Lost_MW) / cte.total_Energy_Lost) * 100, 2) AS pct_Energy_Loss,
+    RANK() OVER(Partition BY a.Participant_Code, a.Facility_Code ORDER BY SUM(Energy_Lost_MW) DESC) AS rank
+FROM AEMR_Outage_Table AS a
+JOIN cte USING(Participant_Code)    
+GROUP BY a.Participant_Code, a.Facility_Code, a.Description_Of_Outage
